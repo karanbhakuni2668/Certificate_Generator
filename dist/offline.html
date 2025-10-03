@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - EventEye</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .offline-container {
+            text-align: center;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .offline-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+        
+        .offline-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #a78bfa, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .offline-subtitle {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .offline-features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .feature {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+        
+        .feature-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .feature-desc {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .retry-button {
+            background: linear-gradient(135deg, #a78bfa, #22d3ee);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+        
+        .retry-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(167, 139, 250, 0.3);
+        }
+        
+        .offline-status {
+            margin-top: 30px;
+            padding: 16px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        @media (max-width: 600px) {
+            .offline-features {
+                grid-template-columns: 1fr;
+            }
+            
+            .offline-container {
+                padding: 30px 20px;
+            }
+            
+            .offline-title {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">📱</div>
+        
+        <h1 class="offline-title">You're Offline</h1>
+        
+        <p class="offline-subtitle">
+            Don't worry! EventEye works offline too. You can still access your cached data and some features.
+        </p>
+        
+        <div class="offline-features">
+            <div class="feature">
+                <div class="feature-icon">📋</div>
+                <div class="feature-title">View Certificates</div>
+                <div class="feature-desc">Access previously loaded certificates</div>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">👤</div>
+                <div class="feature-title">User Profile</div>
+                <div class="feature-desc">View your profile information</div>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <div class="feature-title">Dashboard</div>
+                <div class="feature-desc">Access cached dashboard data</div>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">⚙️</div>
+                <div class="feature-title">Settings</div>
+                <div class="feature-desc">Manage app preferences</div>
+            </div>
+        </div>
+        
+        <button class="retry-button" onclick="window.location.reload()">
+            🔄 Try Again
+        </button>
+        
+        <div class="offline-status">
+            <strong>Connection Status:</strong> Offline<br>
+            <strong>Last Sync:</strong> <span id="lastSync">Checking...</span>
+        </div>
+    </div>
+
+    <script>
+        // Check if we're back online
+        function checkConnection() {
+            if (navigator.onLine) {
+                window.location.reload()
+            }
+        }
+        
+        // Update last sync time
+        function updateLastSync() {
+            const lastSyncElement = document.getElementById('lastSync')
+            const lastSync = localStorage.getItem('lastSync')
+            
+            if (lastSync) {
+                const date = new Date(parseInt(lastSync))
+                lastSyncElement.textContent = date.toLocaleString()
+            } else {
+                lastSyncElement.textContent = 'Never'
+            }
+        }
+        
+        // Listen for online event
+        window.addEventListener('online', checkConnection)
+        
+        // Update last sync on load
+        updateLastSync()
+        
+        // Check connection every 5 seconds
+        setInterval(checkConnection, 5000)
+        
+        // Auto-retry after 30 seconds
+        setTimeout(() => {
+            if (!navigator.onLine) {
+                checkConnection()
+            }
+        }, 30000)
+    </script>
+</body>
+</html>

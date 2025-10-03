@@ -1,0 +1,20 @@
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  /* Dark professional gradient (charcoal → navy → indigo → teal) */
+  background: linear-gradient(135deg, #0b0f19 0%, #0f172a 35%, #1e3a8a 70%, #0f766e 100%);
+  background-attachment: fixed;
+}
+
+/* Optional: subtle overlay to improve contrast */
+#root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(1200px 800px at 70% 10%, rgba(255,255,255,0.04), rgba(255,255,255,0) 60%),
+              radial-gradient(1000px 600px at 20% 90%, rgba(0,0,0,0.35), rgba(0,0,0,0) 60%);
+  pointer-events: none;
+}
