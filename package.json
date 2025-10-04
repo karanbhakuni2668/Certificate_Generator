@@ -10,10 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
     "@mui/icons-material": "^6.4.2",
     "@mui/material": "^6.4.2",
+    "cloudinary": "^2.7.0",
     "firebase": "^11.0.2",
     "jspdf": "^2.5.2",
     "papaparse": "^5.4.1",
@@ -36,4 +38,3 @@
     "workbox-window": "^7.3.0"
   }
 }
- 

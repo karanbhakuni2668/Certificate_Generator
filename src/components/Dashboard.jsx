@@ -34,19 +34,34 @@ import {
 import UploadCsv from './UploadCsv'
 import ParticipantTable from './ParticipantTable'
 import CertificatePreview from './CertificatePreview'
-import { listenDeliveryStatuses, queueSendCertificate } from '../services/db'
+import { listenDeliveryStatuses, queueSendCertificate, listenParticipants } from '../services/db'
+import { sendBulkCertificateEmails, initEmailJS, isEmailJSConfigured } from '../services/emailService'
+import { generateCertificate } from '../services/certService'
 
 export default function Dashboard() {
   const [eventId, setEventId] = useState('demo-event')
   const [tab, setTab] = useState(0)
   const [deliveries, setDeliveries] = useState({})
+  const [participants, setParticipants] = useState([])
   const [toast, setToast] = useState(null)
+  const [bulkLoading, setBulkLoading] = useState(false)
 
   useEffect(() => {
     if (!eventId) return
     const off = listenDeliveryStatuses(eventId, setDeliveries)
     return () => off?.()
   }, [eventId])
+
+  useEffect(() => {
+    if (!eventId) return
+    const off = listenParticipants(eventId, setParticipants)
+    return () => off?.()
+  }, [eventId])
+
+  // Initialize EmailJS on component mount
+  useEffect(() => {
+    initEmailJS()
+  }, [])
 
   const stats = useMemo(() => {
     const vals = Object.values(deliveries)
@@ -60,8 +75,83 @@ export default function Dashboard() {
   }, [deliveries])
 
   const handleBulkSend = async (channel) => {
-    setToast({ severity: 'info', msg: `Queued all visible participants for ${channel}` })
-    // Actual queuing happens in ParticipantTable per row; this is a placeholder for bulk actions
+    if (channel === 'email') {
+      await handleBulkEmailSend()
+    } else {
+      setToast({ severity: 'info', msg: `Queued all visible participants for ${channel}` })
+      // WhatsApp bulk functionality can be added later
+    }
+  }
+
+  const handleBulkEmailSend = async () => {
+    if (participants.length === 0) {
+      setToast({ severity: 'warning', msg: 'No participants found. Please upload CSV first.' })
+      return
+    }
+
+    if (!isEmailJSConfigured()) {
+      setToast({ severity: 'error', msg: 'EmailJS configuration incomplete. Please set PUBLIC_KEY in emailService.js' })
+      return
+    }
+
+    const participantsWithEmail = participants.filter(p => p.email && p.email.trim())
+    
+    if (participantsWithEmail.length === 0) {
+      setToast({ severity: 'warning', msg: 'No participants with email addresses found.' })
+      return
+    }
+
+    setBulkLoading(true)
+    setToast({ severity: 'info', msg: `Sending emails to ${participantsWithEmail.length} participants...` })
+
+    try {
+      // Prepare event details
+      const eventDetails = {
+        id: eventId,
+        title: 'EventEye Hackathon 2024',
+        date: new Date().toLocaleDateString('en-IN', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }),
+        organizer: 'EventEye Team'
+      }
+
+      // Generate certificates for all participants
+      const certificateData = {}
+      for (const participant of participantsWithEmail) {
+        try {
+          const certificateResult = await generateCertificate({
+            participant,
+            event: eventDetails,
+            organizer: 'EventEye',
+            verifyUrl: `https://eventeye.example.com/verify?event=${encodeURIComponent(eventId)}&p=${encodeURIComponent(participant.id)}`,
+            templateId: 1,
+          })
+          certificateData[participant.id] = certificateResult
+        } catch (error) {
+          console.error(`Failed to generate certificate for ${participant.name}:`, error)
+        }
+      }
+
+      // Send bulk emails
+      const results = await sendBulkCertificateEmails(participantsWithEmail, eventDetails, certificateData)
+      
+      // Count results
+      const successful = results.filter(r => r.success).length
+      const failed = results.filter(r => !r.success).length
+
+      setToast({ 
+        severity: successful > 0 ? 'success' : 'error', 
+        msg: `Bulk email completed: ${successful} sent, ${failed} failed` 
+      })
+
+    } catch (error) {
+      console.error('Bulk email error:', error)
+      setToast({ severity: 'error', msg: `Bulk email failed: ${error.message}` })
+    } finally {
+      setBulkLoading(false)
+    }
   }
 
   const tabIcons = [
@@ -269,6 +359,7 @@ export default function Dashboard() {
               variant="contained" 
               size="large"
               onClick={() => handleBulkSend('email')}
+              disabled={bulkLoading}
               sx={{
                 px: 4,
                 py: 1.5,
@@ -283,7 +374,7 @@ export default function Dashboard() {
                 transition: 'all 0.3s ease'
               }}
             >
-              Bulk Send Email
+              {bulkLoading ? 'Sending Emails...' : 'Bulk Send Email'}
             </Button>
             
             <Button 

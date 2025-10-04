@@ -4,11 +4,20 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    global: 'globalThis',
+    'process.env': '{}'
+  },
+  server: {
+    hmr: {
+      port: 5173
+    }
+  },
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'offline.html'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'offline.html', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
         name: 'EventEye - Certificate Management Platform',
         short_name: 'EventEye',

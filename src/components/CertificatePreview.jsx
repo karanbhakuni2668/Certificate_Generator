@@ -23,7 +23,9 @@ import {
   SearchOutlined
 } from '@mui/icons-material'
 import { listenParticipants } from '../services/db'
-import { generateCertificate } from '../services/certService'
+import { generateCertificate, getTemplateInfo, getLanguageInfo } from '../services/certService'
+import TemplateSelector from './TemplateSelector'
+import LanguageSelector from './LanguageSelector'
 
 export default function CertificatePreview({ eventId }) {
   const [rows, setRows] = useState([])
@@ -32,6 +34,8 @@ export default function CertificatePreview({ eventId }) {
   const [busy, setBusy] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [generatedCertificates, setGeneratedCertificates] = useState([])
+  const [selectedTemplate, setSelectedTemplate] = useState(1)
+  const [selectedLanguage, setSelectedLanguage] = useState('en')
 
   useEffect(() => {
     if (!eventId) return
@@ -69,6 +73,7 @@ export default function CertificatePreview({ eventId }) {
         },
         organizer: 'EventEye',
         verifyUrl: `https://eventeye.example.com/verify?event=${encodeURIComponent(eventId)}&p=${encodeURIComponent(student.id)}`,
+        templateId: selectedTemplate,
       })
       
       setPreviewUrl(dataUrl)
@@ -79,6 +84,8 @@ export default function CertificatePreview({ eventId }) {
         name: student.name,
         email: student.email,
         generatedAt: new Date().toLocaleString(),
+        templateId: selectedTemplate,
+        templateName: getTemplateInfo(selectedTemplate).name,
         dataUrl,
         blob
       }])
@@ -108,6 +115,22 @@ export default function CertificatePreview({ eventId }) {
       await new Promise(resolve => setTimeout(resolve, 1000)) // Delay between downloads
       downloadCertificate(cert)
     }
+  }
+
+  const handleTemplateSelect = (templateId) => {
+    setSelectedTemplate(templateId)
+    setPreviewUrl(null) // Clear preview when template changes
+  }
+
+  const handleTemplatePreview = (templateId) => {
+    // Generate a preview with sample data
+    const sampleStudent = {
+      name: 'Sample Participant',
+      email: 'sample@example.com',
+      id: 'preview'
+    }
+    
+    generateCertificateForStudent(sampleStudent)
   }
 
   // Debug info
@@ -180,6 +203,13 @@ export default function CertificatePreview({ eventId }) {
           Found {rows.length} participants for event "{eventId}"
         </Typography>
       </Box>
+
+      {/* Template Selector */}
+      <TemplateSelector
+        selectedTemplate={selectedTemplate}
+        onTemplateSelect={handleTemplateSelect}
+        onPreview={handleTemplatePreview}
+      />
 
       {/* Debug Info (only show if there are issues) */}
       {rows.length > 0 && rows.some(row => !row.name) && (
@@ -372,12 +402,23 @@ export default function CertificatePreview({ eventId }) {
                     borderRadius: 2
                   }}
                 >
-                  <Typography 
-                    variant="h6" 
-                    sx={{ color: '#fff', fontWeight: 600, mb: 2 }}
-                  >
-                    Selected Student
-                  </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography 
+                      variant="h6" 
+                      sx={{ color: '#fff', fontWeight: 600 }}
+                    >
+                      Selected Student
+                    </Typography>
+                    <Chip
+                      label={getTemplateInfo(selectedTemplate).name}
+                      size="small"
+                      sx={{
+                        color: '#fff',
+                        backgroundColor: 'rgba(167,139,250,0.2)',
+                        border: '1px solid rgba(167,139,250,0.5)'
+                      }}
+                    />
+                  </Box>
                   
                   <Stack spacing={2}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -581,20 +622,50 @@ export default function CertificatePreview({ eventId }) {
             <Grid container spacing={2}>
               {generatedCertificates.map((cert, index) => (
                 <Grid item xs={12} sm={6} md={4} key={cert.id}>
-                  <Chip
-                    label={`${cert.name}`}
-                    variant="outlined"
+                  <Paper
+                    elevation={0}
                     onClick={() => downloadCertificate(cert)}
                     sx={{
-                      color: '#fff',
-                      borderColor: 'rgba(167,139,250,0.5)',
-                      backgroundColor: 'rgba(167,139,250,0.1)',
+                      p: 2,
+                      cursor: 'pointer',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 2,
+                      transition: 'all 0.2s ease',
                       '&:hover': {
-                        backgroundColor: 'rgba(167,139,250,0.2)',
-                        borderColor: '#a78bfa'
+                        background: 'rgba(255,255,255,0.1)',
+                        borderColor: 'rgba(167,139,250,0.3)',
+                        transform: 'translateY(-2px)'
                       }
                     }}
-                  />
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                      <Avatar sx={{ bgcolor: 'rgba(167,139,250,0.2)', width: 32, height: 32 }}>
+                        <PersonOutlined sx={{ color: '#a78bfa', fontSize: 20 }} />
+                      </Avatar>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography sx={{ color: '#fff', fontWeight: 600, fontSize: '0.9rem' }}>
+                          {cert.name}
+                        </Typography>
+                        <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem' }}>
+                          {cert.templateName}
+                        </Typography>
+                      </Box>
+                      <Chip
+                        label="Download"
+                        size="small"
+                        sx={{
+                          color: '#fff',
+                          borderColor: 'rgba(167,139,250,0.5)',
+                          backgroundColor: 'rgba(167,139,250,0.1)',
+                          fontSize: '0.7rem'
+                        }}
+                      />
+                    </Box>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem' }}>
+                      Generated: {cert.generatedAt}
+                    </Typography>
+                  </Paper>
                 </Grid>
               ))}
             </Grid>
